@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>StrengthLab · Concrete Strength Predictor</title>
+  <meta name="description" content="Predict concrete compressive strength and IS-grade compliance with from-scratch linear models, kernels and SVMs.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='5' y='5' width='22' height='22' fill='%233a3833' stroke='%23ff5a1f' stroke-width='3'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@300;400;500;600;700&family=Unbounded:wght@500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/style.css">
+  <link rel="stylesheet" href="/assets/css/components.css">
+</head>
+<body class="is-loading">
+  <div class="aurora" aria-hidden="true"><span></span><span></span><span></span></div>
+  <div class="gridlines" aria-hidden="true"></div>
+  <div class="grain" aria-hidden="true"></div>
+
+  <!-- Loader: a 150 mm cube is crushed, then the screen splits open -->
+  <div class="loader press-loader" id="loader" aria-hidden="true">
+    <div>
+      <div class="press" id="press">
+        <div class="press__frame"></div>
+        <div class="press__ram" id="ram"></div>
+        <div class="press__cube concrete-tex" id="pcube">
+          <svg viewBox="0 0 110 110"><path d="M55 0 L48 30 L60 52 L44 80 L52 110"/><path d="M48 30 L20 42 L6 70"/><path d="M60 52 L88 60 L104 92"/><path d="M44 80 L22 96"/></svg>
+        </div>
+      </div>
+      <div class="press-read"><span id="lpVal">0.0</span><small>MPa</small></div>
+      <div class="loader__meta" style="width:min(420px,80vw);margin:10px auto 0"><span>IS 516 · compression test · 150 mm cube</span><span id="lpMsg">loading</span></div>
+    </div>
+  </div>
+
+  <div class="progress" id="progress"></div>
+  <header class="nav" id="nav">
+    <a href="#top" class="brand" aria-label="StrengthLab home"><span class="brand__mark"></span>StrengthLab</a>
+    <nav class="nav__links" id="navLinks" aria-label="Sections">
+      <span class="nav__pill"></span>
+      <a href="#data">Data</a>
+      <a href="#regression">Regression</a>
+      <a href="#kernels">Kernels</a>
+      <a href="#classifiers">Classifiers</a>
+      <a href="#designer">Mix designer</a>
+      <a href="#report">Report</a>
+    </nav>
+    <div class="nav__cta">
+      <a class="btn btn--sm" href="/docs" target="_blank" rel="noopener">API</a>
+      <a class="btn btn--sm btn--primary" href="/graphs">All graphs <span class="arrow">&rarr;</span></a>
+    </div>
+  </header>
+
+  <main id="top">
+    <!-- ============================== HERO ============================== -->
+    <section class="hero">
+      <div class="bg-type" aria-hidden="true">M30</div>
+      <div class="wrap">
+        <div class="hero__grid">
+          <div>
+            <span class="eyebrow" data-reveal>Regression · kernels · SVMs · built from scratch</span>
+            <h1 class="h-display hero__title" id="heroTitle">Will this mix pass <span class="grad">M30?</span> Know it <span class="out">28 days</span> early.</h1>
+            <p class="lead hero__lead" data-reveal style="--d:500">
+              Concrete is accepted only after its test cubes are crushed at 28 days. StrengthLab predicts the crushing strength
+              of a mix from its recipe, and the chance it meets an IS 456 grade, using linear models, Bayesian inference,
+              kernels and support vector machines all written from scratch.
+            </p>
+            <div class="hero__actions" data-reveal style="--d:700">
+              <a class="btn btn--primary magnet" href="#designer">Design a mix <span class="arrow">&rarr;</span></a>
+              <a class="btn magnet" href="#regression">See the models</a>
+            </div>
+          </div>
+          <div class="cube-stage" id="cubeStage" data-reveal="scale" style="--d:300" data-cursor="tilt">
+            <canvas id="gravel" aria-hidden="true"></canvas>
+            <div class="cube-shadow"></div>
+            <div class="cube-wrap"><div class="cube">
+              <div class="face f1 concrete-tex"><span>M30</span><small>150 mm · 28 d</small></div>
+              <div class="face f2 concrete-tex"><span>38.25</span><small>MPa target</small></div>
+              <div class="face f3 concrete-tex"><span>w/c</span><small>Abrams' law</small></div>
+              <div class="face f4 concrete-tex"><span>IS 456</span><small>Table 5</small></div>
+              <div class="face f5 concrete-tex"></div>
+              <div class="face f6 concrete-tex"></div>
+            </div></div>
+            <div class="cube-tag" style="left:0;top:14%">cement · slag · fly ash</div>
+            <div class="cube-tag" style="right:0;bottom:16%">predicted in 8 ms</div>
+          </div>
+        </div>
+        <div class="hero__stats" data-reveal style="--d:900">
+          <div class="stat"><div class="stat__v" data-count="1005">0</div><div class="stat__l">unique lab-tested mixes (UCI, Yeh 1998)</div></div>
+          <div class="stat"><div class="stat__v" id="heroR2">0.94</div><div class="stat__l">test R² with the kernel trick (linear: <span id="heroLinR2">0.85</span>)</div></div>
+          <div class="stat"><div class="stat__v" id="heroRmse">4.2</div><div class="stat__l">MPa typical error on unseen mixes</div></div>
+          <div class="stat"><div class="stat__v"><span data-count="12">0</span></div><div class="stat__l">models, from least squares to SVM</div></div>
+        </div>
+      </div>
+      <div class="scroll-cue" aria-hidden="true"><i></i>scroll</div>
+    </section>
+
+    <div class="hazard" aria-hidden="true"></div>
+    <div class="marquee" aria-hidden="true"><div class="marquee__track" id="marquee"></div></div>
+
+    <!-- ============================== DATA ============================== -->
+    <section id="data">
+      <div class="section-num" aria-hidden="true">01</div>
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow" data-reveal>Practice · load, view, summarise</span>
+            <h2 class="h2" data-split>1,030 cubes <em>crushed in a lab.</em></h2>
+          </div>
+          <p class="lead" data-reveal style="--d:200">I-Cheng Yeh's UCI dataset records eight recipe inputs (kg per m³ of concrete, plus curing age) and the measured compressive strength. Exact duplicate records were removed so no mix appears in both training and test data.</p>
+        </div>
+        <div class="tiles" data-reveal>
+          <div class="tile"><div class="tile__v" data-count="1030">0</div><div class="tile__l">raw records</div></div>
+          <div class="tile"><div class="tile__v" data-count="25">0</div><div class="tile__l">duplicates removed</div></div>
+          <div class="tile"><div class="tile__v" data-count="8">0</div><div class="tile__l">inputs (7 ingredients + age)</div></div>
+          <div class="tile"><div class="tile__v" data-count="0">0</div><div class="tile__l">missing values</div></div>
+          <div class="tile"><div class="tile__v"><span data-count="704">0</span>/<span data-count="151">0</span>/<span data-count="150">0</span></div><div class="tile__l">train / validation / test</div></div>
+        </div>
+        <div class="card" data-reveal>
+          <div class="tabs" id="dataTabs"><span class="tabs__pill"></span><button class="active" data-tab="rows">Raw rows</button><button data-tab="summary">Summary statistics</button></div>
+          <div id="tab-rows">
+            <div class="table-wrap" id="rowsTable"></div>
+            <div class="pager"><span id="pagerInfo" class="tnum"></span>
+              <div class="pager__btns"><button class="btn btn--sm" id="prevPage">&larr; Prev</button><button class="btn btn--sm" id="randPage">Random page</button><button class="btn btn--sm" id="nextPage">Next &rarr;</button></div>
+            </div>
+          </div>
+          <div id="tab-summary" hidden><div class="table-wrap" id="summaryTable"></div></div>
+        </div>
+        <div data-reveal data-observe style="margin-top:28px">
+          <span class="spec">IS 456 grades · IS 10262 target mean strength <b>f'ck = fck + 1.65 s</b></span>
+          <div class="grades" id="grades"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================== REGRESSION ============================== -->
+    <section id="regression">
+      <div class="section-num" aria-hidden="true">02</div>
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow" data-reveal>MLE · ridge · robust · Bayesian</span>
+            <h2 class="h2" data-split>Six ways to <em>predict MPa.</em></h2>
+          </div>
+          <p class="lead" data-reveal style="--d:200">Pick a model and watch the 150 test predictions slide into place. The diagonal is perfection. Linear models share one ceiling; the kernel models break through it.</p>
+        </div>
+        <div class="lab2">
+          <div class="card" data-reveal="left">
+            <div class="model-list" id="regModels"></div>
+            <div class="divider"></div>
+            <div class="eqn" id="regEq"></div>
+            <div class="divider"></div>
+            <div class="duo">
+              <div class="kpi"><b class="big-num" id="regR2">–</b><span>test R²</span></div>
+              <div class="kpi"><b class="big-num" id="regRmse">–</b><span>test RMSE (MPa)</span></div>
+            </div>
+          </div>
+          <div class="card" data-reveal="right"><div id="parityPlot" class="plot plot-lg"></div></div>
+        </div>
+        <div class="lab2" style="margin-top:18px">
+          <div class="card" data-reveal="left">
+            <h3 class="card__title">Ridge: shrink the weights</h3>
+            <p class="card__sub">Slide λ. Correlated water, w/c and w/b weights stop fighting and share the credit.</p>
+            <div class="divider"></div>
+            <div class="control"><label>ln λ <b id="lamVal">–</b></label><input type="range" id="lamSlider" min="0" max="35" value="0" aria-label="Ridge lambda"></div>
+            <p class="subtle" id="lamNote"></p>
+            <div class="divider"></div>
+            <h3 class="card__title">Outlier stress test</h3>
+            <p class="card__sub">Mistype a share of the training cube results. Which model shrugs it off?</p>
+            <div class="control" style="margin-top:14px"><label>Corrupted results <b id="conVal">0%</b></label><input type="range" id="conSlider" min="0" max="5" value="0" aria-label="Contamination"></div>
+            <div class="duo" style="margin-top:12px">
+              <div class="kpi"><b class="big-num" id="conOls" style="color:var(--acc)">–</b><span>least-squares RMSE</span></div>
+              <div class="kpi"><b class="big-num" id="conHub" style="color:var(--steel)">–</b><span>Huber RMSE</span></div>
+            </div>
+          </div>
+          <div class="card" data-reveal="right"><h3 class="card__title">Standardised weights at this λ</h3><p class="card__sub">MPa per standard deviation of each feature</p><div id="coefBars" style="margin-top:14px"></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================== KERNELS ============================== -->
+    <section id="kernels">
+      <div class="section-num" aria-hidden="true">03</div>
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow" data-reveal>Kernel functions · the kernel trick</span>
+            <h2 class="h2" data-split>Bend the line <em>without the features.</em></h2>
+          </div>
+          <p class="lead" data-reveal style="--d:200">Kernel ridge regression only ever sees similarities k(x, x') = exp(−γ‖x − x'‖²). Tune γ and λ: the model is refitted live on 704 mixes by solving a = (K + λI)⁻¹t. Watch the strength-gain curve for a reference mix, and watch overfitting happen.</p>
+        </div>
+        <div class="lab2">
+          <div class="card controls" data-reveal="left">
+            <div class="control"><label>Kernel width γ <b id="gVal">–</b></label><input type="range" id="gSlider" min="-3.5" max="2.5" step="0.05" value="-1.5" aria-label="log10 gamma"></div>
+            <div class="control"><label>Regulariser ln λ <b id="klVal">–</b></label><input type="range" id="klSlider" min="-9" max="3" step="0.1" value="-4.6" aria-label="log lambda"></div>
+            <div><span class="status good" id="kStatus"><i></i><span>Good fit</span></span></div>
+            <div class="readout">
+              <div class="kpi"><b id="kTrain" class="tnum">–</b><span>train R²</span></div>
+              <div class="kpi"><b id="kVal" class="tnum">–</b><span>validation R²</span></div>
+              <div class="kpi"><b id="kTest" class="tnum">–</b><span>test R²</span></div>
+              <div class="kpi"><b id="kLin" class="tnum">–</b><span>linear model test R²</span></div>
+            </div>
+            <p class="subtle">Reference mix: 320 kg cement, 185 kg water, 4 kg superplasticizer, 1,000 kg coarse and 760 kg fine aggregate, no slag or fly ash.</p>
+          </div>
+          <div class="card" data-reveal="right"><div id="kernelPlot" class="plot plot-lg"></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================== CLASSIFIERS ============================== -->
+    <section id="classifiers">
+      <div class="section-num" aria-hidden="true">04</div>
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow" data-reveal>Discriminants · generative · discriminative · SVM</span>
+            <h2 class="h2" data-split>Pass or fail: <em>draw the line.</em></h2>
+          </div>
+          <p class="lead" data-reveal style="--d:200">Each classifier is retrained on two features: water/binder ratio and curing age. The shading is its P(passes M30), and the white curve is its decision boundary. Only the kernel SVM can bend.</p>
+        </div>
+        <div class="lab2">
+          <div class="card" data-reveal="left">
+            <div class="model-list" id="clsModels"></div>
+            <div class="divider"></div>
+            <div class="toggle-row">
+              <span class="switch" id="swSV" role="switch" tabindex="0"><i></i>Support vectors</span>
+              <span class="switch" id="swUnc" role="switch" tabindex="0"><i></i>Bayesian uncertainty</span>
+            </div>
+            <div class="divider"></div>
+            <div class="eqn" id="clsEq"></div>
+          </div>
+          <div class="card" data-reveal="right"><div id="boundaryPlot" class="plot plot-lg"></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================== DESIGNER ============================== -->
+    <section id="designer">
+      <div class="section-num" aria-hidden="true">05</div>
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow" data-reveal>The trained models, at work</span>
+            <h2 class="h2" data-split>Mix designer: <em>crush it virtually.</em></h2>
+          </div>
+          <p class="lead" data-reveal style="--d:200">Set a recipe, pick the grade and exposure. The Bayesian kernel model predicts the strength with an honest 95% band, seven classifiers vote on compliance, and IS 456 durability rules are checked.</p>
+        </div>
+        <div class="designer">
+          <div class="card" data-reveal="left">
+            <div class="presets" id="mixPresets"></div>
+            <div id="ingredients"></div>
+            <div class="spec" style="margin-top:6px">Mix proportions by mass</div>
+            <div class="mix-bar" id="mixBar"></div>
+            <div class="mix-legend" id="mixLegend"></div>
+            <div class="divider"></div>
+            <div class="control"><label>Target grade</label><div class="seg" id="gradeSeg"></div></div>
+            <div class="control" style="margin-top:14px"><label>Exposure (IS 456 Table 5)</label><div class="seg" id="expSeg"></div></div>
+          </div>
+          <div class="side-stack">
+            <div class="card rig-wrap" data-reveal="right" id="rigCard">
+              <div class="stamp" id="stamp">PASS</div>
+              <span class="spec">Predicted compressive strength · <b id="ageTag">28 days</b></span>
+              <div class="readout-big" style="margin:8px 0 14px"><span class="num" id="mpa">–</span><span class="unit">MPa</span><span class="pm" id="pm"></span></div>
+              <div class="rig">
+                <svg viewBox="0 0 300 320" id="rigSvg" aria-label="Compression testing machine">
+                  <rect x="30" y="10" width="240" height="26" fill="#2b2925"/>
+                  <rect x="30" y="286" width="240" height="26" fill="#2b2925"/>
+                  <rect x="40" y="36" width="16" height="250" fill="#34322d"/>
+                  <rect x="244" y="36" width="16" height="250" fill="#34322d"/>
+                  <g id="ramG"><rect x="138" y="36" width="24" height="70" fill="#6b665c"/><rect x="95" y="106" width="110" height="18" fill="#54504a" stroke="#ff5a1f" stroke-width="3"/></g>
+                  <g id="cubeG">
+                    <rect x="100" y="176" width="100" height="110" fill="url(#concrete)" stroke="#8b877d" stroke-width="1"/>
+                    <g id="cracks" fill="none" stroke="#0b0b0a" stroke-width="2.4" stroke-linecap="round">
+                      <path d="M150 176 L143 206 L156 228 L140 256 L148 286"/><path d="M143 206 L118 218 L104 246"/><path d="M156 228 L182 236 L198 268"/>
+                    </g>
+                  </g>
+                  <defs><pattern id="concrete" width="20" height="20" patternUnits="userSpaceOnUse"><rect width="20" height="20" fill="#4a4741"/><circle cx="4" cy="5" r="1.6" fill="#2e2c28"/><circle cx="14" cy="12" r="2" fill="#35332e"/><circle cx="9" cy="17" r="1" fill="#6b665c"/><circle cx="17" cy="3" r="1.2" fill="#2e2c28"/></pattern></defs>
+                  <text x="150" y="304" text-anchor="middle" fill="#8b877d" font-family="IBM Plex Mono, monospace" font-size="10">150 mm CUBE</text>
+                </svg>
+                <div class="gauge" id="gauge">
+                  <div class="gauge__ticks"><span>0</span><span>15</span><span>30</span><span>45</span><span>60</span><span>75</span><span>90</span></div>
+                  <div class="gauge__band" id="gBand"></div>
+                  <div class="gauge__fill" id="gFill"></div>
+                  <div class="gauge__target" id="gTarget"><span id="gTargetLbl"></span></div>
+                </div>
+              </div>
+              <div class="divider"></div>
+              <div class="pvote"><b id="pPass">–</b><span class="subtle" id="pPassText"></span></div>
+              <div class="warn" id="warn"></div>
+            </div>
+            <div class="card" data-reveal="right">
+              <h3 class="card__title">Strength gain with age</h3>
+              <p class="card__sub" id="curveSub">Bayesian kernel GLM mean with 95% band</p>
+              <div id="curvePlot" class="plot"></div>
+            </div>
+            <div class="card" data-reveal="right">
+              <h3 class="card__title">Seven classifiers vote</h3>
+              <p class="card__sub" id="voteSub"></p>
+              <div class="votes" id="votes" style="margin-top:10px"></div>
+            </div>
+            <div class="card" data-reveal="right">
+              <h3 class="card__title">IS 456 durability checks</h3>
+              <p class="card__sub" id="expSub"></p>
+              <div class="checks" id="checks" style="margin-top:10px"></div>
+              <div class="divider"></div>
+              <div class="derived" id="derived"></div>
+              <div class="divider"></div>
+              <div class="tag">All six regressors for this mix</div>
+              <div id="allReg" style="margin-top:8px"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================== REPORT ============================== -->
+    <section id="report">
+      <div class="section-num" aria-hidden="true">06</div>
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow" data-reveal>Scored once, on 150 unseen mixes</span>
+            <h2 class="h2" data-split>The scoreboard, <em>no spin.</em></h2>
+          </div>
+          <p class="lead" data-reveal style="--d:200">Hyperparameters were chosen by cross-validation, validation data or the Bayesian evidence. The test set was touched exactly once. Every from-scratch model is checked against scikit-learn.</p>
+        </div>
+        <div class="metrics" id="metrics" data-reveal></div>
+        <div class="tables">
+          <div class="card" data-reveal><h3 class="card__title">Regression (strength in MPa)</h3><p class="card__sub">Test set, 150 mixes</p><div class="table-wrap" id="regTable" style="margin-top:12px"></div></div>
+          <div class="card" data-reveal style="--d:120"><h3 class="card__title">Classification</h3>
+            <div class="seg" id="repGrade" style="margin:10px 0 12px"></div>
+            <div class="table-wrap" id="clsTable"></div></div>
+        </div>
+        <div class="pipeline" data-reveal data-observe>
+          <div class="pipe" style="--i:0"><span class="tag">01</span><b>Clean &amp; split</b><span>dedupe, 70 / 15 / 15</span></div>
+          <div class="pipe" style="--i:1"><span class="tag">02</span><b>Features</b><span>ln(age), w/c, w/b, standardise</span></div>
+          <div class="pipe" style="--i:2"><span class="tag">03</span><b>Regression</b><span>OLS → ridge → Huber → Bayes</span></div>
+          <div class="pipe" style="--i:3"><span class="tag">04</span><b>Kernels</b><span>KRR, kernel GLM, SVM (SMO)</span></div>
+          <div class="pipe" style="--i:4"><span class="tag">05</span><b>Classify</b><span>5 grades × 7 models</span></div>
+          <div class="pipe" style="--i:5"><span class="tag">06</span><b>Serve</b><span>FastAPI + this page</span></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="hazard thin" aria-hidden="true"></div>
+  <footer>
+    <div class="wrap">
+      <span class="eyebrow" data-reveal>The appendix you'll actually want to open</span>
+      <a class="mega-link" href="/graphs" data-reveal data-cursor="open">
+        <div class="mega-link__row">
+          <div class="mega-link__txt"><span class="roll"><span>Every training graph,</span><span>Every training graph,</span></span><br><span class="roll"><span>explained.</span><span>explained.</span></span></div>
+          <div class="mega-link__arrow"><svg width="40%" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="#f3f1ec" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        </div>
+      </a>
+      <p class="mega-sub" data-reveal>35 charts from this project's real training runs (loss curves, parity plots, regularisation paths, evidence curves, kernel matrices, SVM grids, decision boundaries, ROC, calibration and more), each with what it shows, how it's computed, how to read it, and where it's used in the real world.</p>
+      <div class="foot">
+        <div>Data: Yeh (1998), <a href="https://archive.ics.uci.edu/dataset/165/concrete+compressive+strength" target="_blank" rel="noopener">UCI ML Repository #165</a> · grades per IS 456:2000 &amp; IS 10262:2019</div>
+        <div>Built from scratch with NumPy · FastAPI · Plotly</div>
+        <div><a href="/docs" target="_blank" rel="noopener">API docs</a></div>
+      </div>
+      <div class="giant" aria-hidden="true">StrengthLab</div>
+    </div>
+  </footer>
+
+  <script src="/assets/vendor/plotly.min.js"></script>
+  <script type="module" src="/assets/js/main.js"></script>
+</body>
+</html>
