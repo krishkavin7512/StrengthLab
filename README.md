@@ -95,22 +95,7 @@ flowchart LR
     IS --> OUT
 ```
 
-```mermaid
-sequenceDiagram
-    actor U as 👷 You
-    participant W as 🌐 Mix designer
-    participant A as ⚡ FastAPI
-    participant P as 🧠 predictor.py
-
-    U->>W: Drag a slider / pick a preset
-    W->>A: POST /api/predict (mix, grade, exposure)
-    A->>A: Validate ranges (HTTP 400 if out of range)
-    A->>P: analyse(mix, grade, exposure)
-    P->>P: 6 regressors + 6 classifiers + curve at 48 ages
-    P-->>A: strength ± band, votes, P(pass), IS checks, CO₂
-    A-->>W: JSON
-    W-->>U: Cube-crush gauge, PASS / FAIL stamp, charts
-```
+Every slider move sends one `POST /api/predict`, and the whole analysis comes back in milliseconds.
 
 ### Training pipeline
 
@@ -147,7 +132,9 @@ The whole pipeline runs in **about 30 seconds** on a laptop CPU.
 | **Kernel ridge (RBF)** | The **kernel trick**: curved predictions from a 704 × 704 system | validation grid over γ × λ |
 | **Bayesian kernel GLM** | RBF similarities to 300 prototype mixes, fed into Bayesian linear regression: curved *and* honest about uncertainty | validation log-density |
 
-$$\mathbf{a} = (K + \lambda I)^{-1}\mathbf{t}, \qquad y(\mathbf{x}) = \sum_{n} a_n\,k(\mathbf{x}, \mathbf{x}_n), \qquad k(\mathbf{x},\mathbf{x}') = e^{-\gamma\lVert \mathbf{x}-\mathbf{x}'\rVert^2}$$
+```math
+\mathbf{a} = (K + \lambda I)^{-1}\mathbf{t}, \qquad y(\mathbf{x}) = \sum_{n} a_n\,k(\mathbf{x}, \mathbf{x}_n), \qquad k(\mathbf{x},\mathbf{x}') = e^{-\gamma\lVert \mathbf{x}-\mathbf{x}'\rVert^2}
+```
 
 </details>
 
