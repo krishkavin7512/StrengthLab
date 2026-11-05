@@ -1,0 +1,1 @@
+{"functions":{"api/index.py":{"includeFiles":"frontend/**,artifacts/**,data/**"}},"rewrites":[{"source":"/(.*)","destination":"/api/index"}]}
