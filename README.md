@@ -16,6 +16,7 @@ Six regressors and six classifiers, each written from its equations in NumPy and
 
 <img src="docs/screenshots/hero.jpg" alt="StrengthLab landing page" width="92%">
 
+**Live demo:** [https://strengthlab-six.vercel.app](https://strengthlab-six.vercel.app)<br>
 [The problem](#problem) · [What it does](#what) · [How it works](#how) · [Models](#models) · [Results](#results) · [Screenshots](#screenshots) · [Run it](#run)
 
 </div>
